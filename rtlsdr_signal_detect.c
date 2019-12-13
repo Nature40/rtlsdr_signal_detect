@@ -243,7 +243,6 @@ int main(int argc, char*argv[])
 
             // print keepalive
             if (num_transforms%keepalive == 0) {
-                mysql_ping(con);
                 struct timespec now;
                 clock_gettime(CLOCK_REALTIME,&now);
                 num_transforms = 0;
