@@ -74,14 +74,14 @@ void usage()
     printf("  -b <number>       : number of bins used for fft, default is 400\n");
     printf("  -n <number>       : number of samples per fft, default is 50\n");
     printf("  -k <seconds>      : prints a keep-alive statement every <sec> seconds, default is 300\n");
-    printf(" --ll <limit>       : set lower limit in seconds for signal duration. Shorter signals will not be logged.\n");
-    printf(" --lu <limit>       : set upper limit in seconds for signal duration. Longer signals will not be logged.\n");
+    printf(" --ll <limit>       : set lower limit in seconds for signal duration. Shorter signals will not be logged.");
+    printf(" --lu <limit>       : set upper limit in seconds for signal duration. Longer signals will not be logged.");
     printf(" --sql              : write to database, requires --db_user, --db_pass\n");
     printf(" --db_host <host>   : address of SQL server to use, default is localhost\n");
     printf(" --db_port <pass>   : port on which to connect, use 0 if unsure\n");
     printf(" --db_user <user>   : username for SQL server \n");
     printf(" --db_pass <pass>   : matching password\n");
-    printf(" --db_run_id <id>   : numeric id of this recording run. Used to link it to its metadata in the SQL database\n");
+    printf(" --db_run_id <id>   : numeric id of this recording run. Used to link it to its metadata in the SQL database");
 }
 
 // read samples from file and store into buffer
@@ -260,7 +260,7 @@ int main(int argc, char*argv[])
                     mysql_query(con, sql_statement);
 #ifdef MYSQL_ERRORS
                     if (*mysql_error(con))
-                        fprintf(stderr, "Error while writing to db: %s", mysql_error(con));
+                        fprintf(stderr, "Error while writing to db: %s\n", mysql_error(con));
 #endif
                 }
             }
@@ -524,7 +524,7 @@ int step(float _threshold, unsigned int _sampling_rate, float lowerLimit, float 
                     mysql_query(con, sql_statement);
 #ifdef MYSQL_ERRORS
                 if (*mysql_error(con))
-                        fprintf(stderr, "Error while writing to db: %s", mysql_error(con));
+                    fprintf(stderr, "Error while writing to db: %s\n", mysql_error(con));
 #endif
                 }
             }
