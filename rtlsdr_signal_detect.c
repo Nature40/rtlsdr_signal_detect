@@ -65,23 +65,23 @@ struct option longopts[] = {
 // print usage/help message
 void usage()
 {
-    printf("%s [-b num] [-d name] [-h] [-i file] [-k sec] [-n num] [-r rate] [-s] [--sql [--db_host host] --db_user user --db_pass pass] [-t thre]\n", __FILE__);
-    printf("  -h                : print this help\n");
-    printf("  -i <file>         : input data filename\n");
-    printf("  -t <threshold>    : detection threshold above psd, default: 10 dB\n");
-    printf("  -s                : use STDIN as input\n");
-    printf("  -r <rate>         : sampling rate in Hz, default 250000Hz\n");
-    printf("  -b <number>       : number of bins used for fft, default is 400\n");
-    printf("  -n <number>       : number of samples per fft, default is 50\n");
-    printf("  -k <seconds>      : prints a keep-alive statement every <sec> seconds, default is 300\n");
-    printf(" --ll <limit>       : set lower limit in seconds for signal duration. Shorter signals will not be logged.");
-    printf(" --lu <limit>       : set upper limit in seconds for signal duration. Longer signals will not be logged.");
-    printf(" --sql              : write to database, requires --db_user, --db_pass\n");
-    printf(" --db_host <host>   : address of SQL server to use, default is localhost\n");
-    printf(" --db_port <pass>   : port on which to connect, use 0 if unsure\n");
-    printf(" --db_user <user>   : username for SQL server \n");
-    printf(" --db_pass <pass>   : matching password\n");
-    printf(" --db_run_id <id>   : numeric id of this recording run. Used to link it to its metadata in the SQL database");
+    fprintf(stderr, "%s [-b num] [-d name] [-h] [-i file] [-k sec] [-n num] [-r rate] [-s] [--sql [--db_host host] --db_user user --db_pass pass] [-t thre]\n", __FILE__);
+    fprintf(stderr, "  -h                : print this help\n");
+    fprintf(stderr, "  -i <file>         : input data filename\n");
+    fprintf(stderr, "  -t <threshold>    : detection threshold above psd, default: 10 dB\n");
+    fprintf(stderr, "  -s                : use STDIN as input\n");
+    fprintf(stderr, "  -r <rate>         : sampling rate in Hz, default 250000Hz\n");
+    fprintf(stderr, "  -b <number>       : number of bins used for fft, default is 400\n");
+    fprintf(stderr, "  -n <number>       : number of samples per fft, default is 50\n");
+    fprintf(stderr, "  -k <seconds>      : prints a keep-alive statement every <sec> seconds, default is 300\n");
+    fprintf(stderr, " --ll <limit>       : set lower limit in seconds for signal duration. Shorter signals will not be logged.");
+    fprintf(stderr, " --lu <limit>       : set upper limit in seconds for signal duration. Longer signals will not be logged.");
+    fprintf(stderr, " --sql              : write to database, requires --db_user, --db_pass\n");
+    fprintf(stderr, " --db_host <host>   : address of SQL server to use, default is localhost\n");
+    fprintf(stderr, " --db_port <pass>   : port on which to connect, use 0 if unsure\n");
+    fprintf(stderr, " --db_user <user>   : username for SQL server \n");
+    fprintf(stderr, " --db_pass <pass>   : matching password\n");
+    fprintf(stderr, " --db_run_id <id>   : numeric id of this recording run. Used to link it to its metadata in the SQL database");
 }
 
 // read samples from file and store into buffer
@@ -187,15 +187,26 @@ int main(int argc, char*argv[])
         }
     }
     if (write_to_db!=0)
-        printf("Also sending data to SQL Server at %s.\n", db_host);
-    printf("Ignoring signals shorter than %f and longer than %f\n", lowerLimit, upperLimit);
+        fprintf(stderr, "Also sending data to SQL Server at %s.\n", db_host);
+    fprintf(stderr, "Ignoring signals shorter than %f and longer than %f\n",
+            lowerLimit, upperLimit);
+
+    //print row names
+    printf("%29s; %7s; %8s; %15s; %11s; %10s; %10s\n", 
+        "timestamp", 
+        "samples", 
+        "duration", 
+        "signal_freq", 
+        "signal_bw", 
+        "max_signal", 
+        "noise"
+    );
+
     clock_gettime(CLOCK_REALTIME,&t_start);
     char tbuf[30];
     format_timestamp(t_start,tbuf,30);
-    printf("Will print timestamp every %i transforms\n", keepalive);
-    printf("%s\n",tbuf);
-    //print row names
-    printf("timestamp;samples;duration;signal_freq;signal_bw;max_signal;noise\n");
+    fprintf(stderr, "Will print timestamp every %i transforms\n", keepalive);
+    fprintf(stderr, "%s\n", tbuf);
 
     // continue processing as long as there are samples in the file
     unsigned long int total_samples  = 0;
@@ -250,7 +261,7 @@ int main(int argc, char*argv[])
                 char tbuf[30];
                 char sql_statement[256];
                 format_timestamp(now,tbuf,30);
-                printf("%s;;;;;\n",tbuf);
+                printf("%29s; ; ; ; ; \n",tbuf);
                 fflush(stdout);
                 if (write_to_db!=0) {
                     snprintf(sql_statement, sizeof(sql_statement),
@@ -282,8 +293,8 @@ int main(int argc, char*argv[])
     spgramcf_destroy(periodogram);
     iirfilt_crcf_destroy(dcblock);
 
-    printf("total samples in : %lu\n", total_samples);
-    printf("total transforms : %llu\n", num_transforms);
+    fprintf(stderr, "total samples in : %lu\n", total_samples);
+    fprintf(stderr, "total transforms : %llu\n", num_transforms);
 
     free_memory();
 
@@ -513,7 +524,7 @@ int step(float _threshold, unsigned int _sampling_rate, float lowerLimit, float 
                 float signal_bw   = get_group_bw(i)*_sampling_rate;             // bandwidth estimate (normalized)
                 float max_signal  = get_group_max_sig(i);                       // maximum signal strength per group
                 float noise   = get_group_noise(i);                             // noise level per group
-                printf("%s;%llu;%-10.6f;%9.6f;%9.6f;%f;%f\n",
+                printf("%29s; %7llu; %8.6f; %15.6f; %11.6f; %10f; %10f\n",
                         timestamp, num_transforms, duration, signal_freq, signal_bw,max_signal,noise);
                 fflush(stdout);
                 if (write_to_db!=0) {
