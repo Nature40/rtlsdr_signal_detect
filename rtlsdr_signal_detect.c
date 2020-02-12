@@ -233,6 +233,7 @@ int main(int argc, char *argv[]) {
     // print row names
     printf("%29s; %7s; %8s; %15s; %11s; %10s; %10s\n", "timestamp", "samples",
            "duration", "signal_freq", "signal_bw", "max_signal", "noise");
+    fflush(stdout);
 
     clock_gettime(CLOCK_REALTIME, &t_start);
     char tbuf[30];
