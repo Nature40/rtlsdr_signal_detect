@@ -24,23 +24,6 @@
 
 #define DB_BASE_CREATE "CREATE DATABASE IF NOT EXISTS " DB_BASE ";"
 
-#define DB_RUNS_CREATE                                                         \
-    "CREATE TABLE IF NOT EXISTS " DB_RUNS " ("                                 \
-    "id int(10) unsigned NOT NULL AUTO_INCREMENT,"                             \
-    "device varchar(60) DEFAULT NULL,"                                         \
-    "pos_x float DEFAULT NULL,"                                                \
-    "pos_y float DEFAULT NULL,"                                                \
-    "orientation smallint(5) unsigned DEFAULT NULL,"                           \
-    "beam_width smallint(5) unsigned DEFAULT NULL,"                            \
-    "gain tinyint(3) unsigned DEFAULT NULL,"                                   \
-    "center_freq int(10) unsigned DEFAULT NULL,"                               \
-    "freq_range int(10) unsigned DEFAULT NULL,"                                \
-    "threshold tinyint(3) unsigned DEFAULT NULL,"                              \
-    "fft_bins smallint(5) unsigned DEFAULT NULL,"                              \
-    "fft_sample tinyint(3) unsigned DEFAULT NULL,"                             \
-    "PRIMARY  KEY(id)"                                                         \
-    ") DEFAULT CHARSET = latin1;"
-
 #define DB_TABLE_CREATE                                                        \
     "CREATE TABLE IF NOT EXISTS " DB_TABLE " ("                                \
     "id          bigint(20) unsigned NOT NULL AUTO_INCREMENT,"                 \
@@ -94,40 +77,50 @@ struct option longopts[] = {{"sql", no_argument, &write_to_db, 1},
 
 // print usage/help message
 void usage() {
-    fprintf(
-        stderr,
-        "%s [-b num] [-d name] [-h] [-i file] [-k sec] [-n num] [-r rate] "
-        "[-s] "
-        "[--sql [--db_host host] --db_user user --db_pass pass] [-t thre]\n",
-        __FILE__);
-    fprintf(stderr, "  -h                : print this help\n");
-    fprintf(stderr, "  -i <file>         : input data filename\n");
-    fprintf(stderr, "  -t <threshold>    : detection threshold above psd, "
-                    "default: 10 dB\n");
-    fprintf(stderr, "  -s                : use STDIN as input\n");
     fprintf(stderr,
-            "  -r <rate>         : sampling rate in Hz, default 250000Hz\n");
-    fprintf(stderr, "  -b <number>       : number of bins used for fft, "
-                    "default is 400\n");
-    fprintf(stderr,
-            "  -n <number>       : number of samples per fft, default is 50\n");
-    fprintf(stderr, "  -k <seconds>      : prints a keep-alive statement every "
-                    "<sec> seconds, default is 300\n");
-    fprintf(stderr, " --ll <limit>       : set lower limit in seconds for "
-                    "signal duration. Shorter signals will not be logged.");
-    fprintf(stderr, " --lu <limit>       : set upper limit in seconds for "
-                    "signal duration. Longer signals will not be logged.");
-    fprintf(stderr, " --sql              : write to database, requires "
-                    "--db_user, --db_pass\n");
-    fprintf(stderr, " --db_host <host>   : address of SQL server to use, "
-                    "default is localhost\n");
-    fprintf(
-        stderr,
-        " --db_port <pass>   : port on which to connect, use 0 if unsure\n");
-    fprintf(stderr, " --db_user <user>   : username for SQL server \n");
-    fprintf(stderr, " --db_pass <pass>   : matching password\n");
-    fprintf(stderr, " --db_run_id <id>   : numeric id of this recording run. "
-                    "Used to link it to its metadata in the SQL database");
+            "%s [-h] "
+            "[-i file] [-s] "
+            "[-t thres] [-r rate] [-n num] [-b num] [-k sec] "
+            "[-ll sec] [--lu sec] \n"
+            "    [--sql --db_run_id id [--db_host host] [--db_port port] "
+            "[--db_user user] [--db_pass pass]]\n",
+            __FILE__);
+    fprintf(stderr, "  -h                : "
+                    "print this help\n");
+    fprintf(stderr, "  -i <file>         : "
+                    "input data filename\n");
+    fprintf(stderr, "  -s                : "
+                    "use STDIN as input\n");
+    fprintf(stderr, "  -t <threshold>    : "
+                    "detection threshold above psd, default: '10' dB\n");
+    fprintf(stderr, "  -r <rate>         : "
+                    "sampling rate in Hz, default '250000' Hz\n");
+    fprintf(stderr, "  -b <number>       : "
+                    "number of bins used for fft, default is '400'\n");
+    fprintf(stderr, "  -n <number>       : "
+                    "number of samples per fft, default is '50'\n");
+    fprintf(stderr, "  -k <seconds>      : "
+                    "prints a keep-alive statement every "
+                    "<sec> seconds, default is '300'\n");
+    fprintf(stderr, " --ll <limit>       : "
+                    "set lower limit in seconds for signal duration. Shorter "
+                    "signals will not be logged.\n");
+    fprintf(stderr, " --lu <limit>       : "
+                    "set upper limit in seconds for signal duration. Longer "
+                    "signals will not be logged.\n");
+    fprintf(stderr, " --sql              : "
+                    "write to database\n");
+    fprintf(stderr, " --db_run_id <id>   : "
+                    "numeric id of this recording run. Used to link it to its "
+                    "metadata in the SQL database\n");
+    fprintf(stderr, " --db_host <host>   : "
+                    "address of SQL server to use, default is 'localhost'\n");
+    fprintf(stderr, " --db_port <port>   : "
+                    "port on which to connect, use 0 if unsure\n");
+    fprintf(stderr, " --db_user <user>   : "
+                    "username for SQL server, default is 'rteu'\n");
+    fprintf(stderr, " --db_pass <pass>   : "
+                    "matching password, default is 'rteu'\n");
 }
 
 // read samples from file and store into buffer
@@ -166,8 +159,8 @@ int main(int argc, char *argv[]) {
 
     // read command-line options
     int dopt;
-    while ((dopt = getopt_long(argc, argv, "hi:t:sr:b:n:d:k:", longopts,
-                               NULL)) != -1) {
+    while ((dopt = getopt_long(argc, argv, "hi:st:r:b:n:k:", longopts, NULL)) !=
+           -1) {
         switch (dopt) {
         case 'h':
             usage();
@@ -256,7 +249,7 @@ int main(int argc, char *argv[]) {
     } else {
         fid = fopen(filename_input, "r");
         if (fid == NULL) {
-            fprintf(stderr, "error: could not open %s for reading\n",
+            fprintf(stderr, "Error: could not open %s for reading\n",
                     filename_input);
             exit(-1);
         }
@@ -646,17 +639,12 @@ void free_memory() {
 void open_connection() {
     if (db_user == NULL) {
         db_user = "rteu";
-        fprintf(stderr, "No database user supplied, trying \"%s\"...\n",
-                db_user);
     }
     if (db_pass == NULL) {
         db_pass = "rteu";
-        fprintf(stderr, "No database password supplied, trying \"%s\"...\n",
-                db_pass);
     }
     if (db_host == NULL) {
         db_host = "localhost";
-        fprintf(stderr, "No hostname given, trying \"%s\".\n", db_host);
     }
 
     con = mysql_init(NULL);
@@ -679,15 +667,17 @@ void open_connection() {
 }
 
 void create_tables() {
-    char *create_cmds[] = {DB_BASE_CREATE, DB_RUNS_CREATE, DB_TABLE_CREATE};
+    mysql_query(con, DB_BASE_CREATE);
+    if (*mysql_error(con)) {
+        fprintf(stderr, "Error during create command: %s\n", mysql_error(con));
+        write_to_db = 0;
+        return;
+    }
 
-    for (int i = 0; i < 3; i++) {
-        mysql_query(con, create_cmds[i]);
-        if (*mysql_error(con)) {
-            fprintf(stderr, "Error during create command: %s\n",
-                    mysql_error(con));
-            write_to_db = 0;
-            return;
-        }
+    mysql_query(con, DB_TABLE_CREATE);
+    if (*mysql_error(con)) {
+        fprintf(stderr, "Error during create command: %s\n", mysql_error(con));
+        write_to_db = 0;
+        return;
     }
 }
