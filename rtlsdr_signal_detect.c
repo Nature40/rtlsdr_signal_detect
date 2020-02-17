@@ -17,9 +17,46 @@
 #include <time.h>
 
 #define DB_BASE "rteu"
+#define DB_RUNS "rteu.runs"
 #define DB_TABLE "rteu.signals"
 
 #define BILLION 1000000000L
+
+#define DB_BASE_CREATE "CREATE DATABASE IF NOT EXISTS " DB_BASE ";"
+
+#define DB_RUNS_CREATE                                                         \
+    "CREATE TABLE IF NOT EXISTS " DB_RUNS " ("                                 \
+    "id int(10) unsigned NOT NULL AUTO_INCREMENT,"                             \
+    "device varchar(60) DEFAULT NULL,"                                         \
+    "pos_x float DEFAULT NULL,"                                                \
+    "pos_y float DEFAULT NULL,"                                                \
+    "orientation smallint(5) unsigned DEFAULT NULL,"                           \
+    "beam_width smallint(5) unsigned DEFAULT NULL,"                            \
+    "gain tinyint(3) unsigned DEFAULT NULL,"                                   \
+    "center_freq int(10) unsigned DEFAULT NULL,"                               \
+    "freq_range int(10) unsigned DEFAULT NULL,"                                \
+    "threshold tinyint(3) unsigned DEFAULT NULL,"                              \
+    "fft_bins smallint(5) unsigned DEFAULT NULL,"                              \
+    "fft_sample tinyint(3) unsigned DEFAULT NULL,"                             \
+    "PRIMARY  KEY(id)"                                                         \
+    ") DEFAULT CHARSET = latin1;"
+
+#define DB_TABLE_CREATE                                                        \
+    "CREATE TABLE IF NOT EXISTS " DB_TABLE " ("                                \
+    "id          bigint(20) unsigned NOT NULL AUTO_INCREMENT,"                 \
+    "timestamp   char(30) DEFAULT NULL,"                                       \
+    "samples     bigint(20) DEFAULT NULL,"                                     \
+    "duration    float DEFAULT NULL,"                                          \
+    "signal_freq float DEFAULT NULL,"                                          \
+    "signal_bw   float DEFAULT NULL,"                                          \
+    "max_signal  float DEFAULT NULL,"                                          \
+    "noise       float DEFAULT NULL,"                                          \
+    "run         int(10) unsigned NOT NULL,"                                   \
+    "PRIMARY KEY (id),"                                                        \
+    "KEY run (run),"                                                           \
+    "CONSTRAINT signals_ibfk_1 "                                               \
+    "FOREIGN KEY (run) REFERENCES " DB_RUNS " (id) ON DELETE CASCADE"          \
+    ") DEFAULT CHARSET=latin1;"
 
 float *psd_template;
 float *psd;
@@ -59,7 +96,8 @@ struct option longopts[] = {{"sql", no_argument, &write_to_db, 1},
 void usage() {
     fprintf(
         stderr,
-        "%s [-b num] [-d name] [-h] [-i file] [-k sec] [-n num] [-r rate] [-s] "
+        "%s [-b num] [-d name] [-h] [-i file] [-k sec] [-n num] [-r rate] "
+        "[-s] "
         "[--sql [--db_host host] --db_user user --db_pass pass] [-t thre]\n",
         __FILE__);
     fprintf(stderr, "  -h                : print this help\n");
@@ -69,9 +107,8 @@ void usage() {
     fprintf(stderr, "  -s                : use STDIN as input\n");
     fprintf(stderr,
             "  -r <rate>         : sampling rate in Hz, default 250000Hz\n");
-    fprintf(
-        stderr,
-        "  -b <number>       : number of bins used for fft, default is 400\n");
+    fprintf(stderr, "  -b <number>       : number of bins used for fft, "
+                    "default is 400\n");
     fprintf(stderr,
             "  -n <number>       : number of samples per fft, default is 50\n");
     fprintf(stderr, "  -k <seconds>      : prints a keep-alive statement every "
@@ -115,6 +152,7 @@ void format_timestamp(const struct timespec _time, char *_buf,
 struct timespec time_add(const struct timespec _t1, const struct timespec _t2);
 void free_memory();
 void open_connection();
+void create_tables();
 
 // main program
 int main(int argc, char *argv[]) {
@@ -275,7 +313,8 @@ int main(int argc, char *argv[]) {
                 }
                 memmove(psd_max, psd, nfft * sizeof(float));
             } else {
-                // detect differences between current PSD estimate and template
+                // detect differences between current PSD estimate and
+                // template
                 step(threshold, sampling_rate, lowerLimit, upperLimit);
             }
 
@@ -624,14 +663,31 @@ void open_connection() {
     my_bool reconnect = 1;
     mysql_options(con, MYSQL_OPT_RECONNECT, &reconnect);
     if (con != NULL) {
-        if (mysql_real_connect(con, db_host, db_user, db_pass, DB_BASE, db_port,
+        if (mysql_real_connect(con, db_host, db_user, db_pass, NULL, db_port,
                                NULL, 0) == NULL) {
-            fprintf(stderr, "%s\n", mysql_error(con));
+            fprintf(stderr, "Error connecting to database: %s\n",
+                    mysql_error(con));
             mysql_close(con);
             write_to_db = 0;
+        } else {
+            create_tables();
         }
     } else {
-        fprintf(stderr, "ERROR: %s\n", mysql_error(con));
+        fprintf(stderr, "Error connecting to database: %s\n", mysql_error(con));
         write_to_db = 0;
+    }
+}
+
+void create_tables() {
+    char *create_cmds[] = {DB_BASE_CREATE, DB_RUNS_CREATE, DB_TABLE_CREATE};
+
+    for (int i = 0; i < 3; i++) {
+        mysql_query(con, create_cmds[i]);
+        if (*mysql_error(con)) {
+            fprintf(stderr, "Error during create command: %s\n",
+                    mysql_error(con));
+            write_to_db = 0;
+            return;
+        }
     }
 }
