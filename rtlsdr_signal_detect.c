@@ -37,6 +37,7 @@
     "run         int(10) unsigned NOT NULL,"                                   \
     "PRIMARY KEY (id),"                                                        \
     "KEY run (run),"                                                           \
+    "INDEX (timestamp),"                                                       \
     "CONSTRAINT signals_ibfk_1 "                                               \
     "FOREIGN KEY (run) REFERENCES " DB_RUNS " (id) ON DELETE CASCADE"          \
     ") DEFAULT CHARSET=latin1;"
