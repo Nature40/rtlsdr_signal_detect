@@ -24,22 +24,22 @@
 
 #define DB_BASE_CREATE "CREATE DATABASE IF NOT EXISTS " DB_BASE ";"
 
-#define DB_TABLE_CREATE                                                        \
-    "CREATE TABLE IF NOT EXISTS " DB_TABLE " ("                                \
-    "id          bigint(20) unsigned NOT NULL AUTO_INCREMENT,"                 \
-    "timestamp   char(30) DEFAULT NULL,"                                       \
-    "samples     bigint(20) DEFAULT NULL,"                                     \
-    "duration    float DEFAULT NULL,"                                          \
-    "signal_freq float DEFAULT NULL,"                                          \
-    "signal_bw   float DEFAULT NULL,"                                          \
-    "max_signal  float DEFAULT NULL,"                                          \
-    "noise       float DEFAULT NULL,"                                          \
-    "run         int(10) unsigned NOT NULL,"                                   \
-    "PRIMARY KEY (id),"                                                        \
-    "KEY run (run),"                                                           \
-    "INDEX (timestamp),"                                                       \
-    "CONSTRAINT signals_ibfk_1 "                                               \
-    "FOREIGN KEY (run) REFERENCES " DB_RUNS " (id) ON DELETE CASCADE"          \
+#define DB_TABLE_CREATE                                               \
+    "CREATE TABLE IF NOT EXISTS " DB_TABLE " ("                       \
+    "id          bigint(20) unsigned NOT NULL AUTO_INCREMENT,"        \
+    "timestamp   DATETIME(6) DEFAULT NULL,"                           \
+    "samples     bigint(20) DEFAULT NULL,"                            \
+    "duration    float DEFAULT NULL,"                                 \
+    "signal_freq float DEFAULT NULL,"                                 \
+    "signal_bw   float DEFAULT NULL,"                                 \
+    "max_signal  float DEFAULT NULL,"                                 \
+    "noise       float DEFAULT NULL,"                                 \
+    "run         int(10) unsigned NOT NULL,"                          \
+    "PRIMARY KEY (id),"                                               \
+    "KEY run (run),"                                                  \
+    "INDEX (timestamp),"                                              \
+    "CONSTRAINT signals_ibfk_1 "                                      \
+    "FOREIGN KEY (run) REFERENCES " DB_RUNS " (id) ON DELETE CASCADE" \
     ") DEFAULT CHARSET=latin1;"
 
 float *psd_template;
@@ -579,7 +579,7 @@ int step(float _threshold, unsigned int _sampling_rate, float lowerLimit,
                     get_group_bw(i) *
                     _sampling_rate; // bandwidth estimate (normalized)
                 float max_signal =
-                    get_group_max_sig(i); // maximum signal strength per group
+                    get_group_max_sig(i);         // maximum signal strength per group
                 float noise = get_group_noise(i); // noise level per group
                 printf("%29s; %7llu; %8.6f; %15.6f; %11.6f; %10f; %10f\n",
                        timestamp, num_transforms, duration, signal_freq,
